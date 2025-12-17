@@ -1,0 +1,156 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:WCONV-{phone_number}",
+ "creation": "2025-11-30 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "phone_number",
+  "contact_name",
+  "column_break_1",
+  "last_message_time",
+  "unread_count",
+  "section_break_2",
+  "business_type",
+  "label",
+  "column_break_3",
+  "current_level",
+  "next_level",
+  "previous_level",
+  "section_break_4",
+  "delay_time",
+  "last_interaction",
+  "column_break_5",
+  "total_messages",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Phone Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "contact_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact Name"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_message_time",
+   "fieldtype": "Datetime",
+   "label": "Last Message Time"
+  },
+  {
+   "default": "0",
+   "fieldname": "unread_count",
+   "fieldtype": "Int",
+   "label": "Unread Count"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break",
+   "label": "Business Info"
+  },
+  {
+   "fieldname": "business_type",
+   "fieldtype": "Select",
+   "label": "Business Type",
+   "options": "\nLead\nCustomer\nSupport\nSales\nPartner\nOther"
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Select",
+   "label": "Label",
+   "options": "\nHot\nWarm\nCold\nVIP\nUrgent\nFollow-up\nClosed"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "current_level",
+   "fieldtype": "Select",
+   "label": "Current Level",
+   "options": "\nLevel 1 - Initial Contact\nLevel 2 - Engaged\nLevel 3 - Interested\nLevel 4 - Negotiating\nLevel 5 - Closing\nLevel 6 - Completed\nLevel 7 - Follow-up"
+  },
+  {
+   "fieldname": "next_level",
+   "fieldtype": "Select",
+   "label": "Next Level",
+   "options": "\nLevel 1 - Initial Contact\nLevel 2 - Engaged\nLevel 3 - Interested\nLevel 4 - Negotiating\nLevel 5 - Closing\nLevel 6 - Completed\nLevel 7 - Follow-up"
+  },
+  {
+   "fieldname": "previous_level",
+   "fieldtype": "Select",
+   "label": "Previous Level",
+   "options": "\nLevel 1 - Initial Contact\nLevel 2 - Engaged\nLevel 3 - Interested\nLevel 4 - Negotiating\nLevel 5 - Closing\nLevel 6 - Completed\nLevel 7 - Follow-up"
+  },
+  {
+   "fieldname": "section_break_4",
+   "fieldtype": "Section Break",
+   "label": "Timing & Stats"
+  },
+  {
+   "description": "Response delay time in minutes",
+   "fieldname": "delay_time",
+   "fieldtype": "Float",
+   "label": "Delay Time (minutes)"
+  },
+  {
+   "fieldname": "last_interaction",
+   "fieldtype": "Datetime",
+   "label": "Last Interaction"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_messages",
+   "fieldtype": "Int",
+   "label": "Total Messages"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-30 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe Pywce",
+ "name": "WhatsApp Conversation",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,24 @@
+{
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false
+  },
+  "include": [
+    "src/**/*",
+    "src/index.ts",
+    "vitest.config.ts",
+    "vite-plugin/**/*.d.ts",
+    "frappe_pywce/studio/vite-plugin/**/*.d.ts"
+  ],
+}
