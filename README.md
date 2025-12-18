@@ -38,7 +38,7 @@ Building data-driven WhatsApp bots is hard. They need to be:
 Install the app to your bench:
 
 ```bash
-$ bench get-app frappe_pywce https://github.com/DonnC/frappe_pywce.git
+$ bench get-app frappe_pywce https://github.com/EngConcern/erpnext_whatsap.git
 
 $ bench --site <your-site-name> install-app frappe_pywce
 ```
