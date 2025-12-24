@@ -89,6 +89,142 @@ const Index = () => {
     error: updateError,
   } = useFrappeUpdateDoc<ChatBotConfig>();
 
+
+useEffect(() => {
+  console.log("ChatBot Config: ", data);
+  console.log("ChatBot Config Name: ", data?.chatbot_name);
+
+  if (data && !isFlowLoaded) {
+    setIsFlowLoaded(true);
+
+    if (data.flow_json) {
+      let flowData: any;
+      try {
+        flowData =
+          typeof data.flow_json === "string"
+            ? JSON.parse(data.flow_json)
+            : data.flow_json;
+      } catch (err: any) {
+        toast.error("Failed to parse flow_json: " + (err?.message ?? err));
+        return;
+      }
+
+      // Get the 'flow' parameter from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const flowParam = urlParams.get("flow");
+
+      let flow: ChatbotFlow | null = null;
+      let selectedBotName = "";
+
+      // Check if the parsed data has a 'chatbots' array (new structure)
+      if (flowData.chatbots && Array.isArray(flowData.chatbots)) {
+        if (flowParam) {
+          // Find chatbot by name
+          const foundBot = flowData.chatbots.find(
+            (bot: any) =>
+              bot.name.toLowerCase() === flowParam.toLowerCase()
+          );
+
+          if (foundBot) {
+            // Format the flow without the name wrapper
+            flow = {
+              templates: foundBot.templates,
+              version: flowData.version || "1.0"
+            };
+            selectedBotName = foundBot.name;
+          } else {
+            toast.warning(
+              `Chatbot "${flowParam}" not found. Loading first chatbot.`
+            );
+            // Load first chatbot, formatted without the name wrapper
+            flow = {
+              templates: flowData.chatbots[0].templates,
+              version: flowData.version || "1.0"
+            };
+            selectedBotName = flowData.chatbots[0].name;
+          }
+        } else {
+          // No flow parameter, load first chatbot formatted without the name wrapper
+          flow = {
+            templates: flowData.chatbots[0].templates,
+            version: flowData.version || "1.0"
+          };
+          selectedBotName = flowData.chatbots[0].name;
+        }
+      } else {
+        // Old structure (single chatbot flow) - already in correct format
+        flow = flowData as ChatbotFlow;
+        selectedBotName = data.chatbot_name ?? "untitled";
+      }
+
+      if (flow && flow.templates) {
+        const newNodes: Node<ChatbotTemplate>[] = flow.templates.map(
+          (template) => ({
+            id: template.id,
+            type: "template",
+            position: template.position || { x: 0, y: 0 },
+            data: template,
+          })
+        );
+
+        const newEdges: Edge[] = [];
+        flow.templates.forEach((template) => {
+          template.routes?.forEach((route) => {
+            if (route.connectedTo) {
+              const label = route.pattern
+                ? route.isRegex && route.pattern === ".*"
+                  ? "any"
+                  : route.pattern
+                : "";
+
+              newEdges.push({
+                id: `e${template.id}-${route.id}-${route.connectedTo}`,
+                source: template.id,
+                sourceHandle: route.id,
+                target: route.connectedTo,
+                type: edgeType,
+                animated: true,
+                label,
+                data: { isRegex: route.isRegex, edgeType },
+              });
+            }
+          });
+        });
+
+        setNodes(newNodes);
+        setEdges(newEdges);
+        saveToHistory();
+
+        toast.success(`ChatBot flow "${selectedBotName}" loaded`);
+      } else {
+        toast.error("Invalid flow structure");
+      }
+    } else {
+      toast.info(
+        `New flow for "${data.chatbot_name ?? "untitled"}". Start building!`
+      );
+      setNodes([]);
+      setEdges([]);
+      saveToHistory();
+    }
+  } else if (!data && !isLoading && !isFlowLoaded) {
+    setIsFlowLoaded(true);
+    toast.info(`Create a new chatbot to continue`);
+    setNodes([]);
+    setEdges([]);
+    saveToHistory();
+  }
+}, [
+  data,
+  isLoading,
+  isFlowLoaded,
+  edgeType,
+  setNodes,
+  setEdges,
+  saveToHistory,
+]);
+
+  /*
   useEffect(() => {
     console.log("ChatBot Config: ", data);
     console.log("ChatBot Config Name: ", data?.chatbot_name);
@@ -171,6 +307,8 @@ const Index = () => {
     setEdges,
     saveToHistory,
   ]);
+
+  */
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -502,7 +640,7 @@ const Index = () => {
   }, [edgeType, setEdges]);
 
   // TODO: handle versions properly
-  const getCurrentFlowJson = () => {
+ /* const getCurrentFlowJson = () => {
     const flow: ChatbotFlow = {
       templates: nodes.map((node) => ({
         ...node.data,
@@ -513,6 +651,100 @@ const Index = () => {
     return JSON.stringify(flow, null, 2);
   };
 
+  */
+
+  const getCurrentFlowJson = () => {
+  // Get the 'flow' parameter from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const flowParam = urlParams.get("flow");
+
+  // Create the current flow from nodes
+  const currentFlow: ChatbotFlow = {
+    templates: nodes.map((node) => ({
+      ...node.data,
+      position: node.position,
+    })),
+    version: "1.0",
+  };
+
+  // If we have existing data with chatbots array, we need to update the specific chatbot
+  if (data?.flow_json) {
+    let flowData: any;
+    try {
+      flowData =
+        typeof data.flow_json === "string"
+          ? JSON.parse(data.flow_json)
+          : data.flow_json;
+    } catch (err) {
+      // If parsing fails, return the current flow as-is
+      return JSON.stringify(currentFlow, null, 2);
+    }
+
+    // Check if it's a multi-chatbot structure
+    if (flowData.chatbots && Array.isArray(flowData.chatbots)) {
+      if (flowParam) {
+        // Find and update the specific chatbot
+        const botIndex = flowData.chatbots.findIndex(
+          (bot: any) => bot.name.toLowerCase() === flowParam.toLowerCase()
+        );
+
+        if (botIndex !== -1) {
+          // Update the specific chatbot's templates
+          flowData.chatbots[botIndex].templates = currentFlow.templates;
+          return JSON.stringify(flowData, null, 2);
+        } else {
+          // Chatbot not found, add it as a new one
+          flowData.chatbots.push({
+            name: flowParam,
+            templates: currentFlow.templates,
+          });
+          return JSON.stringify(flowData, null, 2);
+        }
+      } else {
+        // No flow parameter, update the first chatbot
+        if (flowData.chatbots.length > 0) {
+          flowData.chatbots[0].templates = currentFlow.templates;
+          return JSON.stringify(flowData, null, 2);
+        }
+      }
+    }
+  }
+
+    // If no existing multi-chatbot structure or old format, return current flow
+    return JSON.stringify(currentFlow, null, 2);
+  };
+
+
+  const saveCurrentFlowJson = () => {
+  setIsSaving(true);
+  const flowJson = getCurrentFlowJson();
+
+  console.log("Saving flow JSON: ", flowJson);
+
+  // Get the 'flow' parameter from URL for the success message
+  const urlParams = new URLSearchParams(window.location.search);
+  const flowParam = urlParams.get("flow");
+  const flowName = flowParam || data?.chatbot_name || "untitled";
+
+  updateDoc(chatbotConfigDocName, chatbotConfigDocName, {
+    flow_json: flowJson,
+  })
+    .then(async () => {
+      toast.success(`Flow "${flowName}" saved!`);
+      await mutate();
+    })
+    .catch((err) => {
+      console.error(err);
+      toast.error(`Failed to save flow "${flowName}".`);
+    })
+    .finally(() => {
+      setIsSaving(false);
+      });
+  };
+
+
+
+  /*
   const saveCurrentFlowJson = () => {
     setIsSaving(true);
     const flowJson = getCurrentFlowJson();
@@ -534,6 +766,8 @@ const Index = () => {
         setIsSaving(false);
       });
   };
+
+  */
 
   const previewCurrentFlowJson = () => {
     toast.info("Saving flow before preview...");
