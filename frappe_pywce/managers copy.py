@@ -29,50 +29,9 @@ class FrappeStorageManager(storage.IStorageManager):
     START_MENU: Optional[str] = None
     REPORT_MENU: Optional[str] = None
     
-    def __init__(self, flow_json, chatbot_name=None):
+    def __init__(self, flow_json):
         self.flow_json = flow_json
-        self.chatbot_name = chatbot_name
         self._ensure_templates_loaded()
-    
-    def _extract_templates_from_flow(self, flow_data):
-        """
-        Extract templates from either old or new multi-chatbot format.
-        Returns a dict with 'templates' and 'version' keys.
-        """
-        # Check if it's the new multi-chatbot format
-        if isinstance(flow_data, dict) and 'chatbots' in flow_data:
-            chatbots = flow_data.get('chatbots', [])
-            
-            if not chatbots:
-                raise Exception("No chatbots found in flow_json")
-            
-            # If chatbot_name is specified, find that specific chatbot
-            if self.chatbot_name:
-                selected_bot = None
-                for bot in chatbots:
-                    if bot.get('name', '').lower() == self.chatbot_name.lower():
-                        selected_bot = bot
-                        break
-                
-                if not selected_bot:
-                    logger.warning(f"Chatbot '{self.chatbot_name}' not found, using first chatbot")
-                    selected_bot = chatbots[0]
-            else:
-                # No chatbot name specified, use the first one
-                selected_bot = chatbots[0]
-            
-            # Return the flow in the old format that VisualTranslator expects
-            return {
-                'templates': selected_bot.get('templates', []),
-                'version': flow_data.get('version', '1.0')
-            }
-        
-        # Old format (already has 'templates' at root level)
-        elif isinstance(flow_data, dict) and 'templates' in flow_data:
-            return flow_data
-        
-        else:
-            raise Exception("Invalid flow_json format: missing 'chatbots' or 'templates' key")
     
     # might add caching
     def _load_templates_from_db(self):
@@ -81,23 +40,13 @@ class FrappeStorageManager(storage.IStorageManager):
             if not self.flow_json:
                 raise Exception(f"No flow json found or is empty.")
             
-            # Parse the flow_json if it's a string
-            if isinstance(self.flow_json, str):
-                flow_data = json.loads(self.flow_json)
-            else:
-                flow_data = self.flow_json
-            
-            # Extract templates in the format VisualTranslator expects
-            extracted_flow = self._extract_templates_from_flow(flow_data)
-            
             ui_translator = VisualTranslator()
-            self._TEMPLATES, self._TRIGGERS = ui_translator.translate(extracted_flow)
+            self._TEMPLATES, self._TRIGGERS = ui_translator.translate(self.flow_json)
             self.START_MENU = ui_translator.START_MENU
             self.REPORT_MENU = ui_translator.REPORT_MENU
 
         except Exception as e:
-            frappe.log_error(title=f"FrappeStorageManager Load Error", message=str(e))
-            logger.error(f"Error loading templates: {str(e)}", exc_info=True)
+            frappe.log_error(title=f"FrappeStorageManager Load Error")
             self._TEMPLATES = {}
 
     def _ensure_templates_loaded(self):
@@ -122,13 +71,10 @@ class FrappeStorageManager(storage.IStorageManager):
         try:
             self._ensure_templates_loaded()
             template_data = self._TEMPLATES.get(name)
-            if template_data is None:
-                logger.warning(f"Template '{name}' not found")
-                return None
             return template.Template.as_model(template_data)
-        except Exception as e:
-            frappe.log_error(title="Get Template Error", message=str(e))
-            logger.critical("Error fetching template: %s - %s", name, str(e), exc_info=True)
+        except Exception:
+            frappe.log_error(title="Get Template Error")
+            logger.critical("Error fetching template: %s", name, exc_info=True)
             return None
 
     def triggers(self) -> List[template.EngineRoute]:
