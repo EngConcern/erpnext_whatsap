@@ -16,13 +16,13 @@ def create_cache_key(k:str):
 
 class FrappeStorageManager(storage.IStorageManager):
     """
-    Implements the IStorageManager interface for a live Frappe backend.
+    Implements the IStorageManager interface for a live Frappe backend.g
 
     This class is responsible for:
     1. Fetching the "active" chatbot flow.
     2. Caching the *translated* pywce-compatible dictionary.
     3. Invalidating the cache when the bot is saved in Frappe.
-    """
+    """ 
     _TEMPLATES: Dict = {}
     _TRIGGERS: List[template.EngineRoute] = {}
 
