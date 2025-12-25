@@ -4,11 +4,12 @@
 frappe.ui.form.on("Bot Flow", {
   refresh: function (frm) {
     // Add "Open Bot Studio" button
-    frm.add_custom_button(__("Open Bot Studio"), function () {
+   /* frm.add_custom_button(__("Open Bot Studio"), function () {
       // Pass the flow name as a parameter to the studio
       const flowName = encodeURIComponent(frm.doc.name);
       window.open(`/bot/studio?flow=${flowName}`, "_blank");
     });
+    */
 
     // Add "Duplicate Flow" button
     if (!frm.is_new()) {
