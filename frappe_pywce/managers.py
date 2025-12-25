@@ -171,7 +171,7 @@ class FrappeStorageManager(storage.IStorageManager):
             if not self._TEMPLATES:
                 logger.error("No templates loaded! _TEMPLATES is empty")
                 return None
-            
+             
             logger.debug(f"Available templates: {list(self._TEMPLATES.keys())}")
             
             # Special handling for None template name
