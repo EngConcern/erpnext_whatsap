@@ -55,10 +55,33 @@ class FrappeStorageManager(storage.IStorageManager):
             for bot in chatbots:
                 bot_name = bot.get('name', 'Unknown')
                 templates = bot.get('templates', [])
+                
+                if not templates:
+                    logger.warning(f"Chatbot '{bot_name}' has no templates, skipping")
+                    continue
+                
                 logger.info(f"Extracting {len(templates)} templates from chatbot '{bot_name}'")
+                
+                # Log template IDs for debugging
+                template_ids = [t.get('id', 'NO_ID') for t in templates]
+                logger.debug(f"Template IDs from '{bot_name}': {template_ids}")
+                
                 all_templates.extend(templates)
             
+            if not all_templates:
+                logger.warning("No templates found in any chatbot!")
+                return {
+                    'templates': [],
+                    'version': flow_data.get('version', '1.0')
+                }
+            
             logger.info(f"Total templates extracted from all chatbots: {len(all_templates)}")
+            
+            # Check for duplicate template IDs
+            template_ids = [t.get('id') for t in all_templates]
+            duplicates = [tid for tid in template_ids if template_ids.count(tid) > 1]
+            if duplicates:
+                logger.warning(f"Duplicate template IDs found: {set(duplicates)}")
             
             # Return the flow in the old format that VisualTranslator expects
             return {
@@ -94,13 +117,19 @@ class FrappeStorageManager(storage.IStorageManager):
             
             logger.info(f"Extracted flow structure: templates={len(extracted_flow.get('templates', []))}, version={extracted_flow.get('version')}")
             
+            if not extracted_flow.get('templates'):
+                logger.warning("No templates to translate!")
+                self._TEMPLATES = {}
+                self._TRIGGERS = []
+                return
+            
             ui_translator = VisualTranslator()
             self._TEMPLATES, self._TRIGGERS = ui_translator.translate(extracted_flow)
             self.START_MENU = ui_translator.START_MENU
             self.REPORT_MENU = ui_translator.REPORT_MENU
             
             logger.info(f"Translation complete: {len(self._TEMPLATES)} templates, {len(self._TRIGGERS)} triggers")
-            logger.info(f"Template IDs: {list(self._TEMPLATES.keys())}")
+            logger.info(f"Template IDs after translation: {list(self._TEMPLATES.keys())}")
             logger.info(f"START_MENU: {self.START_MENU}, REPORT_MENU: {self.REPORT_MENU}")
 
         except Exception as e:
@@ -126,25 +155,46 @@ class FrappeStorageManager(storage.IStorageManager):
     def exists(self, name: str) -> bool:
         self._ensure_templates_loaded()
         exists = name in self._TEMPLATES
-        logger.debug(f"Template exists check: '{name}' = {exists}")
+        
+        if not exists:
+            logger.warning(f"Template '{name}' does not exist. Available: {list(self._TEMPLATES.keys())}")
+        
         return exists
 
     def get(self, name: str) -> template.EngineTemplate:    
         try:
             self._ensure_templates_loaded()
             
-            logger.debug(f"Fetching template: '{name}'")
+            logger.info(f"Attempting to fetch template: '{name}'")
+            
+            # Check if templates were loaded
+            if not self._TEMPLATES:
+                logger.error("No templates loaded! _TEMPLATES is empty")
+                return None
+            
             logger.debug(f"Available templates: {list(self._TEMPLATES.keys())}")
+            
+            # Special handling for None template name
+            if name is None or name == "None":
+                logger.error(f"Template name is None or 'None' string. This indicates a routing issue.")
+                logger.error(f"Check your template routes - one of them might be pointing to a non-existent template")
+                return None
             
             template_data = self._TEMPLATES.get(name)
             
             if template_data is None:
                 logger.error(f"Template '{name}' not found in _TEMPLATES")
                 logger.error(f"Available template IDs: {list(self._TEMPLATES.keys())}")
+                logger.error(f"This could mean:")
+                logger.error(f"  1. A route is pointing to a template ID that doesn't exist")
+                logger.error(f"  2. Template IDs changed but routes weren't updated")
+                logger.error(f"  3. The template was removed but routes still reference it")
                 return None
             
-            logger.debug(f"Template data type: {type(template_data)}")
-            logger.debug(f"Template data keys: {template_data.keys() if isinstance(template_data, dict) else 'not a dict'}")
+            logger.debug(f"Template data found, type: {type(template_data)}")
+            
+            if isinstance(template_data, dict):
+                logger.debug(f"Template data keys: {template_data.keys()}")
             
             return template.Template.as_model(template_data)
             
