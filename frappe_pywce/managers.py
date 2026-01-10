@@ -606,7 +606,7 @@ class FrappeStorageManager(storage.IStorageManager):
 
     def get_template_settings(self, name: str) -> dict:
         """
-        Get the settings for a template including delay_time, typing, and ack.
+        Get the settings for a template including delay_time, typing, ack, message_level, and next_level.
         
         Returns empty dict if template doesn't exist or has no settings.
         """
@@ -630,6 +630,12 @@ class FrappeStorageManager(storage.IStorageManager):
         
         if 'ack' in settings:
             result['ack'] = settings['ack']
+            
+        if 'message_level' in settings:
+            result['message_level'] = settings['message_level']
+            
+        if 'next_level' in settings:
+            result['next_level'] = settings['next_level']
         
         if result:
             logger.info(f"Template '{name}' settings: {result}")

@@ -33,6 +33,78 @@ def on_hook_listener(arg: HookArg) -> None:
     except Exception as e:
         app_logger.warning(f"Could not log hook data: {e}")
     
+    # SAVE MESSAGE TO DATABASE BEFORE APPLYING CONTROLS
+    try:
+        storage_manager = getattr(frappe.local, 'storage_manager', None)
+        
+        if storage_manager and hasattr(arg, 'template_name') and hasattr(arg, 'recipient'):
+            template_name = arg.template_name
+            recipient = arg.recipient
+            
+            # Get template settings including message_level and next_level
+            settings = storage_manager.get_template_settings(template_name)
+            message_level = settings.get('message_level', '')
+            next_level = settings.get('next_level', '')
+            delay_time = settings.get('delay_time', 0)
+            
+            # Get message content from hook arg if available
+            message_text = ""
+            message_type = "text"
+            
+            # Try different ways to get message content
+            if hasattr(arg, 'message') and arg.message:
+                message = arg.message
+                if isinstance(message, str):
+                    message_text = message
+                elif isinstance(message, dict):
+                    # Try different possible keys for message content
+                    message_text = (message.get('body') or 
+                                  message.get('text') or 
+                                  message.get('content') or 
+                                  str(message))
+                    message_type = message.get('type', 'text')
+            elif hasattr(arg, 'template_body') and arg.template_body:
+                # Try to get from template_body
+                template_body = arg.template_body
+                if hasattr(template_body, 'message'):
+                    message = template_body.message
+                    if isinstance(message, str):
+                        message_text = message
+                    elif isinstance(message, dict):
+                        message_text = message.get('body', '') or message.get('text', '')
+                        message_type = message.get('type', 'text')
+            
+            # Save outgoing message to database
+            try:
+                message_doc = frappe.get_doc({
+                    "doctype": "WhatsApp Chat Message",
+                    "phone_number": recipient,
+                    "message_id": None,  # Will be updated when sent
+                    "timestamp": frappe.utils.now(),
+                    "direction": "Outgoing",
+                    "message_type": message_type,
+                    "message_text": message_text,
+                    "contact_name": "",  # Can be updated later if needed
+                    "status": "sending",
+                    "message_level": message_level,
+                    "next_level": next_level,
+                    "delay_time": delay_time
+                })
+                message_doc.insert(ignore_permissions=True)
+                frappe.db.commit()
+                
+                # Store message name in hook arg for later reference
+                if not hasattr(arg, 'message_doc_name'):
+                    arg.message_doc_name = message_doc.name
+                
+                app_logger.info(f"✅ Saved outgoing message for template '{template_name}' to {recipient} (level: {message_level}, next: {next_level}, delay: {delay_time}s)")
+                
+            except Exception as save_error:
+                app_logger.error(f"❌ Failed to save outgoing message: {save_error}")
+    
+    except Exception as e:
+        app_logger.error(f"❌ Failed to save message in hook: {e}")
+    
     # APPLY MESSAGE CONTROLS HERE (before message is sent)
     try:
         # Get storage manager from frappe.local if available
@@ -98,6 +170,29 @@ def on_client_send_listener() -> None:
     hook_arg = getattr(frappe.local, "hook_arg", None)
     if hook_arg:
         app_logger.info(f"Sent Hook Arg: {hook_arg}")
+        
+        # Update message status and ID if we saved a message
+        if hasattr(hook_arg, 'message_doc_name') and hook_arg.message_doc_name:
+            try:
+                # Get message ID from hook arg if available
+                message_id = None
+                if hasattr(hook_arg, 'message_id'):
+                    message_id = hook_arg.message_id
+                
+                # Update the message document
+                frappe.db.set_value(
+                    "WhatsApp Chat Message",
+                    hook_arg.message_doc_name,
+                    {
+                        "message_id": message_id,
+                        "status": "sent"
+                    }
+                )
+                frappe.db.commit()
+                app_logger.info(f"✅ Updated message {hook_arg.message_doc_name} with status 'sent'")
+                
+            except Exception as update_error:
+                app_logger.error(f"❌ Failed to update message status: {update_error}")
     else:
         app_logger.warning("No hook_arg found in frappe.local")
     

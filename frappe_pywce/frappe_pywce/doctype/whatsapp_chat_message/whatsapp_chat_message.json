@@ -21,8 +21,10 @@
   "status",
   "contact_name",
   "column_break_5",
-  "error_message",
-  "metadata"
+  "error_message",  "section_break_6",
+  "message_level",
+  "next_level",
+  "delay_time",  "metadata"
  ],
  "fields": [
   {
@@ -112,6 +114,25 @@
    "fieldname": "error_message",
    "fieldtype": "Small Text",
    "label": "Error Message"
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "message_level",
+   "fieldtype": "Data",
+   "label": "Message Level"
+  },
+  {
+   "fieldname": "next_level",
+   "fieldtype": "Data",
+   "label": "Next Level"
+  },
+  {
+   "fieldname": "delay_time",
+   "fieldtype": "Int",
+   "label": "Delay Time (seconds)"
   },
   {
    "fieldname": "metadata",
