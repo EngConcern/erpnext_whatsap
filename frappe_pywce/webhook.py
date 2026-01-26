@@ -12,7 +12,7 @@ import os
 from frappe_pywce.config import get_engine_config, get_wa_config
 from frappe_pywce.util import CACHE_KEY_PREFIX, LOCK_WAIT_TIME, LOCK_LEASE_TIME, bot_settings, create_cache_key
 from frappe_pywce.pywce_logger import app_logger as logger
-from frappe_pywce.routing_engine import RoutingEngine
+from frappe_pywce.routing_engine import RoutingEngine, send_matched_template
 
 
 def _verifier():
@@ -640,10 +640,10 @@ def _process_chatbot_message(phone_number, message_text):
         engine = RoutingEngine(chatbot)
         template = engine.find_response_template(phone_number, message_text)
         
-        # If template found, send the response
+        # If template found, send the response using the new TemplateSender
         if template:
             logger.info(f"Found template {template.get('id')} for message from {phone_number}")
-            _send_template_response(phone_number, template)
+            send_matched_template(phone_number, template)
         else:
             logger.info(f"No matching template found for message from {phone_number}")
             
